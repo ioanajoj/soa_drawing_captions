@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:10.5
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=backend
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+  backend:
+    depends_on:
+      - "postgres"
+    build: src/backend
+    environment:
+      DRAWING_CAPTIONS_APP_SECRET: ${DRAWING_CAPTIONS_APP_SECRET}
+    entrypoint: ["holdup", "postgres://postgres:postgres@postgres", "--", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - ./src/backend/src:/app/src
+  computer-vision:
+    build: src/computer-vision
+    environment:
+      DRAWING_CAPTIONS_APP_SECRET: ${DRAWING_CAPTIONS_APP_SECRET}
+      COMPUTER_VISION_COGNITIVE_SERVICES_KEY: ${COMPUTER_VISION_COGNITIVE_SERVICES_KEY}
+  frontend-host:
+    build: src/frontend/host
+    ports:
+      - "80:80"
+    depends_on:
+      - "backend"
+      - "computer-vision"
+  frontend-painter:
+    build: src/frontend/painter
+    ports: 
+      - "4201:4201"
